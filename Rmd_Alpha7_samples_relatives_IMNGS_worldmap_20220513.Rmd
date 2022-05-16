@@ -1,0 +1,101 @@
+---
+title: "Alpha_samples_worldmap"
+author: "Tina Enders"
+date: "4/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Host and symbiont location
+
+This is an R Markdown document to display the sampling locations of all currently used Alpha7 (Candidatus Saccharisymbium) samples.    
+Current date: 13.5.2022.  
+Status of the sample set: thesis chapter ready.  
+Reason for this mapping: plotting where we can find Alpha7 and in which host species.  
+  
+### Load libraries
+
+```{r set_env, message = FALSE}
+options(repos='http://cran.rstudio.com/')
+
+#needed
+#install.packages('seqinr')
+#install.packages('plotly')
+
+library(ggplot2)
+library(plotly)
+library(ggplot2)
+library(maps)
+library(mapdata)
+library(seqinr)
+library(tidyr)
+
+##potential, delete unused later
+#install.packages('maps')
+#install.packages('tidyr')
+#install.packages('mapproj')
+#install.packages('viridis')
+#install.packages('listviewer')
+#install.packages('caTools')
+
+#library(maps)
+#library(sp)
+#library(dplyr)
+#library(reshape2)
+#library(stringr)
+#library(mapproj)
+#library(viridis)
+#library(listviewer)
+#library(caTools)
+```
+
+###Load sample data  
+Load metdadata table and symbiont table to be able to combine info later.
+
+
+```{r, results = 'hide'}
+setwd("D:/Seafile/HomeOffice/Oilv_Alpha7_2022/maps/")
+mdata <- read.table("Alpha7_samplings_sites_species_dot_20220331.csv", sep = ",", header = T, dec = ".")
+mdata$latitude <- as.numeric(mdata$latitude)
+mdata$longitude <- as.numeric(mdata$longitude)
+
+bindata <- read.table("Alpha7_relatives_bins_samplings_sites_20220331_dot.txt", sep = ",", header = T, dec = ".")
+rRNAdata <- read.table("Alpha7_relatives_16S_samplings_sites_20220331_dot.txt", sep = ",", header = T, dec = ".")
+
+IMNGSraw <- read.table("../IMNGS/20220331_mapping_attempt/all_97_lat_lon.txt", sep = "\t", header = T, dec = ".")
+df <- separate(IMNGSraw, lat_lon, into = c("Latitude", "NS", "Longitude", "EW"), sep = ' ')
+df$Lat <- as.numeric(as.character(df$Lat))
+df$Lon <- as.numeric(as.character(df$Lon))
+df$Latitude <- as.numeric(as.character(df$Latitude))
+df$Longitude <- as.numeric(as.character(df$Longitude))
+df$Lat <- ifelse(df$NS == "S", df$Latitude * -1, df$Latitude)
+df$Lon <- ifelse(df$EW == "W", df$Longitude * -1, df$Longitude)
+df$Lat <- ifelse(!is.na(df$Lat), df$Lat, df$Latitude)
+df$Lon <- ifelse(!is.na(df$Lon), df$Lon, df$Longitude)
+df$similarity <- as.character(df$similarity)
+IMNGSdata <- df
+```
+### Load world data
+```{r}
+world <- map_data("world")
+```
+###Plot sampling sites
+```{r}
+sites <- ggplot() +
+  geom_polygon(data = world, aes(x=long, y = lat, group = group) , fill="#E8E8E8")+
+    theme_bw() +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
+        panel.border=element_blank()) +
+  theme(axis.title=element_blank(), axis.text=element_blank(), axis.ticks=element_blank())+
+  geom_point(data=mdata, aes(x=longitude, y=latitude, color=species), size=4)+
+  geom_point(data=bindata, aes(x=longitude, y=latitude), size=2, colour="black")+
+  geom_point(data=rRNAdata, aes(x=longitude, y=latitude), size=2, colour="#757575")+
+  geom_point(data=IMNGSdata, aes(x=Lon, y=Lat, color=similarity), size=2, shape=17)+
+  scale_colour_manual(values=c("97"="#8ABEB3", "99"="#668C84","S. bahamense"="#FB87FB","S. itembahamense"="#BF67BF","S. mediterraneum"="#FAD2FA","S. okinawense"="#7A427A","S. belizense"="#625262","S. australicum"="#C7A7C7"))
+
+plot(sites)
+ggplotly(sites)
+```
